@@ -1,8 +1,8 @@
-import * as scraper from './scraper.js'
+import * as login from './login/login.js'
 
-const browser = await scraper.runBrowser();
-const page = await scraper.openUrl(browser);
+const browser = await login.runBrowser();
+const page = await login.openUrl(browser);
 
-await scraper.loginToWebsite(page);
+await login.loginToWebsite(page);
 
-scraper.closeBrowser(browser, page);
+login.closeBrowser(browser, page);
