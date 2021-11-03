@@ -1,0 +1,13 @@
+{
+  "name": "linkedin-bot",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "repository": "git@github.com:kbencherif/linkedin-bot.git",
+  "author": "Kamel <kamel.bencherif@epitech.eu>",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^10.0.0",
+    "puppeteer": "^11.0.0"
+  }
+}
