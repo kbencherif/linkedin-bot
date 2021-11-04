@@ -1,5 +1,5 @@
 import puppeteer from 'puppeteer';
-import { env } from './config/index.js'
+import { env } from '../config/index.js'
 
 //const newPage = await browser.newPage();
 
