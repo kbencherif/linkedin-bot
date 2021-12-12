@@ -20,8 +20,7 @@ async function openUrl(browser) {
     return page;
 };
 
-async function closeBrowser(browser, page) {
-    await page.close();
+async function closeBrowser(browser) {
     await browser.close();
 }
 
