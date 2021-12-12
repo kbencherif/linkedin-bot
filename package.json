@@ -8,6 +8,10 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^10.0.0",
+    "esm": "^3.2.25",
     "puppeteer": "^11.0.0"
-  }
+  },
+    "scripts": {
+        "start": "node --experimental-modules --es-module-specifier-resolution=node ."
+    }
 }
