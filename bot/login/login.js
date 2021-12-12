@@ -25,7 +25,7 @@ async function closeBrowser(browser) {
 }
 
 async function loginToWebsite(page) {
-    await page.goto(env.url);
+    await page.goto(`${env.url}/login/`);
     await page.waitForSelector("#username");
     await page.type('#username', env.bot_email, { delay: 100 });
     await page.waitForSelector("#password");
