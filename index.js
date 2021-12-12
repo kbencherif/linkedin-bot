@@ -1,8 +1,12 @@
-import * as login from './login/login.js'
+import * as botLogin from './bot/login/login.js';
+import * as relationships  from './bot/relationships/index.js';
 
-const browser = await login.runBrowser();
-const page = await login.openUrl(browser);
+const browser = await botLogin.runBrowser();
+const page = await botLogin.openUrl(browser);
 
-await login.loginToWebsite(page);
+await botLogin.loginToWebsite(page);
+new_page = page
+await new_page.goto('https://www.linkedin.com/in/pierre-alexis-bizot-87a91b94/');
+await relationships.scrap_relationship(new_page);
 
-login.closeBrowser(browser, page);
+botLogin.closeBrowser(browser, page);
