@@ -1,5 +1,4 @@
 import puppeteer from 'puppeteer';
-import { env } from '../../config/index.js'
 
 exports.handler = async function (event, context) {
   const browser = await puppeteer.launch({ headless: false, product: 'chrome' });

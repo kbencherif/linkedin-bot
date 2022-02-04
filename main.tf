@@ -38,7 +38,7 @@ data "archive_file" "zip_login" {
 }
 
 resource "aws_lambda_function" "run_bot_lambda" {
-  filename      = "login.zip"
+  filename      = "${path.module}/bot/login/login.zip"
   role          = aws_iam_role.iam_for_lambda.arn
   function_name = "run_bot"
   runtime       = "nodejs14.x"
@@ -54,8 +54,18 @@ resource "aws_lambda_function" "run_bot_lambda" {
   }
 }
 
+resource "aws_s3_bucket" "lambda_bucket" {
+  bucket = "turboflex"
+  acl    = "private"
+
+  tags = {
+    Name        = "turboflexplus"
+    Environment = "Dev"
+  }
+}
+
 resource "aws_s3_bucket_object" "lambda_bucket_login" {
-  bucket = "login_bucket"
+  bucket = aws_s3_bucket.lambda_bucket.id
 
   key    = "login.zip"
   source = data.archive_file.zip_login.output_path
