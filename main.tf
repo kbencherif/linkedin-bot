@@ -23,21 +23,46 @@ resource "aws_iam_role" "iam_for_lambda" {
       "Principal": {
         "Service": "lambda.amazonaws.com"
       },
-      "Effect": "Allow"
-      "Sid": ''
+      "Effect": "Allow",
+      "Sid": ""
     }
   ]
 }
 EOF
 }
 
-resource "aws_lambda_function" "run_bot" {
+data "archive_file" "zip_login" {
+  type        = "zip"
+  source_file = "${path.module}/bot/login/login.js"
+  output_path = "${path.module}/bot/login/login.zip"
+}
+
+resource "aws_lambda_function" "run_bot_lambda" {
+  filename      = "login.zip"
+  role          = aws_iam_role.iam_for_lambda.arn
+  function_name = "run_bot"
+  runtime       = "nodejs14.x"
+  handler       = "run_bot.handler"
+
+  #source_code_hash = filebase64sha256("login.zip")
 
   environment {
-    variables {
+    variables = {
       BOT_EMAIL    = var.bot_email
       BOT_PASSWORD = var.bot_password
     }
   }
 }
 
+resource "aws_s3_bucket_object" "lambda_bucket_login" {
+  bucket = "login_bucket"
+
+  key    = "login.zip"
+  source = data.archive_file.zip_login.output_path
+  etag   = filemd5(data.archive_file.zip_login.output_path)
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_policy" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}

@@ -1,4 +1,4 @@
-import auto_scroll from "../../utils/autoscroll"
+import auto_scroll from "../../utils/autoscroll.js"
 
 async function accept_relationships(page) {
     await page.click('[data-link-to="mynetwork"]')

@@ -1,9 +1,11 @@
-variable "linkedin_email" {
-  type      = string
-  sensitive = true
+variable "bot_email" {
+  description = "bot email"
+  type        = string
+  sensitive   = true
 }
 
-variable "linkedin_password" {
-  type      = string
-  sensitive = true
+variable "bot_password" {
+  description = "bot password"
+  type        = string
+  sensitive   = true
 }
