@@ -17,3 +17,5 @@ coverage
 crash.log
 
 .env
+
+secret.tfvars
