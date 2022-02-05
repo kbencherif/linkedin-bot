@@ -33,18 +33,18 @@ EOF
 
 data "archive_file" "zip_login" {
   type        = "zip"
-  source_file = "${path.module}/bot/login/login.js"
+  source_dir  = "${path.module}/bot/login/"
   output_path = "${path.module}/bot/login/login.zip"
+  excludes    = ["${path.module}/bot/login/login.zip"]
 }
 
 resource "aws_lambda_function" "run_bot_lambda" {
-  filename      = "${path.module}/bot/login/login.zip"
-  role          = aws_iam_role.iam_for_lambda.arn
-  function_name = "run_bot"
-  runtime       = "nodejs14.x"
-  handler       = "run_bot.handler"
-
-  #source_code_hash = filebase64sha256("login.zip")
+  filename         = "${path.module}/bot/login/login.zip"
+  role             = aws_iam_role.iam_for_lambda.arn
+  function_name    = "run_bot"
+  runtime          = "nodejs14.x"
+  handler          = "index.handler"
+  source_code_hash = filebase64sha256(data.archive_file.zip_login.output_path)
 
   environment {
     variables = {
