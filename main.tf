@@ -34,8 +34,8 @@ EOF
 data "archive_file" "zip_login" {
   type        = "zip"
   source_dir  = "${path.module}/bot/login/"
+  excludes    = ["${path.module}/bot/login.zip"]
   output_path = "${path.module}/bot/login/login.zip"
-  excludes    = ["${path.module}/bot/login/login.zip"]
 }
 
 resource "aws_lambda_function" "run_bot_lambda" {
@@ -45,6 +45,8 @@ resource "aws_lambda_function" "run_bot_lambda" {
   runtime          = "nodejs14.x"
   handler          = "index.handler"
   source_code_hash = filebase64sha256(data.archive_file.zip_login.output_path)
+  layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
+  timeout          = 90
 
   environment {
     variables = {
@@ -66,7 +68,6 @@ resource "aws_s3_bucket" "lambda_bucket" {
 
 resource "aws_s3_bucket_object" "lambda_bucket_login" {
   bucket = aws_s3_bucket.lambda_bucket.id
-
   key    = "login.zip"
   source = data.archive_file.zip_login.output_path
   etag   = filemd5(data.archive_file.zip_login.output_path)
