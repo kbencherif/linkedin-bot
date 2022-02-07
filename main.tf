@@ -38,10 +38,10 @@ data "archive_file" "zip_login" {
   output_path = "${path.module}/bot/login/login.zip"
 }
 
-resource "aws_lambda_function" "run_bot_lambda" {
+resource "aws_lambda_function" "get_cookies_lambda" {
   filename         = "${path.module}/bot/login/login.zip"
   role             = aws_iam_role.iam_for_lambda.arn
-  function_name    = "run_bot"
+  function_name    = "get_cookies"
   runtime          = "nodejs14.x"
   handler          = "index.handler"
   source_code_hash = filebase64sha256(data.archive_file.zip_login.output_path)
