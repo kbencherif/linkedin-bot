@@ -46,7 +46,8 @@ resource "aws_lambda_function" "run_bot_lambda" {
   handler          = "index.handler"
   source_code_hash = filebase64sha256(data.archive_file.zip_login.output_path)
   layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
-  timeout          = 90
+  timeout          = 30
+  memory_size      = 600
 
   environment {
     variables = {
@@ -54,23 +55,6 @@ resource "aws_lambda_function" "run_bot_lambda" {
       BOT_PASSWORD = var.bot_password
     }
   }
-}
-
-resource "aws_s3_bucket" "lambda_bucket" {
-  bucket = "turboflex"
-  acl    = "private"
-
-  tags = {
-    Name        = "turboflexplus"
-    Environment = "Dev"
-  }
-}
-
-resource "aws_s3_bucket_object" "lambda_bucket_login" {
-  bucket = aws_s3_bucket.lambda_bucket.id
-  key    = "login.zip"
-  source = data.archive_file.zip_login.output_path
-  etag   = filemd5(data.archive_file.zip_login.output_path)
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
