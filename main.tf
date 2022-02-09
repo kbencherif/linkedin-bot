@@ -12,6 +12,9 @@ provider "aws" {
   shared_credentials_file = "~/.aws/credentials"
 }
 
+data "aws_region" "current" {}
+data "aws_caller_identity" "current" {}
+
 resource "aws_iam_role" "iam_for_lambda" {
   name               = "lambda_role"
   assume_role_policy = <<EOF
@@ -66,24 +69,55 @@ resource "aws_api_gateway_rest_api" "api" {
   name = "api"
 }
 
-resource "aws_api_gateway_resource" "auth_resource" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
+resource "aws_api_gateway_resource" "api_resource" {
+  path_part   = "resource"
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "auth"
+  rest_api_id = aws_api_gateway_rest_api.api.id
 }
 
-resource "aws_api_gateway_method" "login_method" {
+resource "aws_api_gateway_method" "lambda_get" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.auth_resource.id
-  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.api_resource.id
+  http_method   = "ANY"
   authorization = "NONE"
 }
 
 resource "aws_api_gateway_integration" "integration" {
-  rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.auth_resource.id
-  http_method             = aws_api_gateway_method.login_method.http_method
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.api_resource.id
+  http_method = aws_api_gateway_method.lambda_get.http_method
+
+  integration_http_method = "POST"
   type                    = "AWS_PROXY"
-  integration_http_method = "GET"
   uri                     = aws_lambda_function.get_cookies_lambda.invoke_arn
+}
+
+resource "aws_lambda_permission" "apigw_lambda" {
+  statement_id  = "AllowExecutionFromAPIGateway"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_cookies_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.api.id}/*/${aws_api_gateway_method.lambda_get.http_method}/${aws_api_gateway_resource.api_resource.path}"
+}
+
+resource "aws_api_gateway_deployment" "turboflex_stage" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  depends_on = [
+    aws_api_gateway_integration.integration
+  ]
+
+  triggers = {
+    redeployement = sha1(jsonencode(aws_api_gateway_integration.integration))
+  }
+  stage_name = "turboflex_stage"
+}
+
+resource "aws_lambda_permission" "apigw" {
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_cookies_lambda.function_name
+  principal     = "apigateway.amazonaws.com"
+
+  source_arn = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
