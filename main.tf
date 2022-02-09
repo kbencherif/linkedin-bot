@@ -61,3 +61,29 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.iam_for_lambda.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
+resource "aws_api_gateway_rest_api" "api" {
+  name = "api"
+}
+
+resource "aws_api_gateway_resource" "auth_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "auth"
+}
+
+resource "aws_api_gateway_method" "login_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.auth_resource.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.auth_resource.id
+  http_method             = aws_api_gateway_method.login_method.http_method
+  type                    = "AWS_PROXY"
+  integration_http_method = "GET"
+  uri                     = aws_lambda_function.get_cookies_lambda.invoke_arn
+}
