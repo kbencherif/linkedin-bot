@@ -101,7 +101,7 @@ resource "aws_lambda_permission" "apigw_lambda" {
   source_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.api.id}/*/${aws_api_gateway_method.lambda_get.http_method}/${aws_api_gateway_resource.api_resource.path}"
 }
 
-resource "aws_api_gateway_deployment" "turboflex_stage" {
+resource "aws_api_gateway_deployment" "api_stage" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   depends_on = [
     aws_api_gateway_integration.integration
@@ -110,7 +110,7 @@ resource "aws_api_gateway_deployment" "turboflex_stage" {
   triggers = {
     redeployement = sha1(jsonencode(aws_api_gateway_integration.integration))
   }
-  stage_name = "turboflex_stage"
+  stage_name = "api_stage"
 }
 
 resource "aws_lambda_permission" "apigw" {
@@ -120,4 +120,31 @@ resource "aws_lambda_permission" "apigw" {
   principal     = "apigateway.amazonaws.com"
 
   source_arn = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
+}
+
+resource "aws_sns_topic" "get_cookies_topic" {
+  name = "cookies_topic"
+}
+
+resource "aws_sns_topic_policy" "topic_policy" {
+  arn    = aws_sns_topic.get_cookies_topic.arn
+  policy = data.aws_iam_policy_document.sns_topic_policy.json
+}
+
+data "aws_iam_policy_document" "sns_topic_policy" {
+  statement {
+    actions = [
+      "SNS:Subscribe",
+      "SNS:Receive",
+      "SNS:Publish",
+    ]
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+    resources = [
+      aws_sns_topic.get_cookies_topic.arn,
+    ]
+  }
 }
