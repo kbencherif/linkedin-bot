@@ -139,6 +139,7 @@ data "aws_iam_policy_document" "sns_topic_policy" {
       "SNS:Publish",
     ]
     effect = "Allow"
+
     principals {
       type        = "AWS"
       identifiers = ["*"]
@@ -147,4 +148,45 @@ data "aws_iam_policy_document" "sns_topic_policy" {
       aws_sns_topic.get_cookies_topic.arn,
     ]
   }
+}
+
+resource "aws_cloudwatch_event_rule" "rule" {
+  name = "start_bot"
+  #  schedule_expression = "cron(0 9 ? * 1-5 *)"
+  schedule_expression = "cron(10 14 ? * 1-5 *)"
+}
+
+resource "aws_cloudwatch_event_target" "sns" {
+  rule      = aws_cloudwatch_event_rule.rule.name
+  target_id = "SendToSNS"
+  arn       = aws_sns_topic.get_cookies_topic.arn
+}
+
+resource "aws_sqs_queue" "queue" {
+  name       = "bot-queue.fifo"
+  fifo_queue = true
+}
+
+resource "aws_sqs_queue_policy" "queue_policy" {
+  queue_url = aws_sqs_queue.queue.id
+  policy    = <<EOF
+{
+  "Version": "2012-10-17",
+  "Id": "sqspolicy",
+  "Statement": [
+    {
+      "Sid": "First",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "sqs:SendMessage",
+      "Resource": "${aws_sqs_queue.queue.arn}",
+      "Condition": {
+        "ArnEquals": {
+          "aws:SourceArn": "${aws_sns_topic.get_cookies_topic.arn}"
+        }
+      }
+    }
+  ]
+}
+EOF
 }
