@@ -34,27 +34,6 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 
-#resource "aws_iam_role" "iam_for_event_bridge" {
-#  name               = "event_bridge_role"
-#  assume_role_policy = <<EOF
-#{
-#  "Version": "2012-10-17",
-#  "Statement": [
-#    {
-#      "Effect": "Allow",
-#      "Action": [
-#        "execute-api:Invoke",
-#        "execute-api:ManageConnections"
-#      ],
-#      "Resource": [
-#        "arn:aws:execute-api:eu-west-1:885096923627:x28bowsfo6/api_stage/*"
-#      ]
-#    }
-#  ]
-#}
-#EOF
-#}
-
 data "archive_file" "zip_get_cookies" {
   type        = "zip"
   source_dir  = "${path.module}/lambdas/get_cookies/"
