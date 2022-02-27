@@ -37,7 +37,7 @@ EOF
 data "archive_file" "zip_get_cookies" {
   type        = "zip"
   source_dir  = "${path.module}/lambdas/get_cookies/"
-  excludes    = ["${path.module}/lambdas/get_cookies.zip"]
+  excludes    = ["${path.module}/lambdas/get_cookies/get_cookies.zip"]
   output_path = "${path.module}/lambdas/get_cookies/get_cookies.zip"
 }
 
@@ -120,12 +120,6 @@ resource "aws_api_gateway_deployment" "bot_api_deployment" {
   }
 }
 
-resource "aws_api_gateway_stage" "bot_apigw_stage" {
-  deployment_id = aws_api_gateway_deployment.bot_api_deployment.id
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  stage_name    = "linkedin_bot_api_stage"
-}
-
 resource "aws_lambda_permission" "apigw" {
   statement_id  = "AllowAPIGatewayInvoke"
   action        = "lambda:InvokeFunction"
@@ -136,12 +130,48 @@ resource "aws_lambda_permission" "apigw" {
 }
 
 resource "aws_cloudwatch_event_rule" "bot_start_rule" {
-  name                = "start_bot"
-  schedule_expression = "cron(0 9 ? * 1-5 *)"
-  #schedule_expression = "cron(0/2 * * * ? *)"
+  name = "start_bot"
+  #schedule_expression = "cron(0 9 ? * 1-5 *)"
+  schedule_expression = "cron(0/2 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "apigw_target" {
   rule = aws_cloudwatch_event_rule.bot_start_rule.id
   arn  = aws_lambda_function.get_cookies.arn
 }
+
+resource "aws_sns_topic" "cookies_topic" {
+  name = "cookies_topic"
+}
+
+resource "aws_sns_topic_policy" "topic_policy" {
+  arn    = aws_sns_topic.cookies_topic.arn
+  policy = data.aws_iam_policy_document.sns_topic_policy_document.json
+}
+
+data "aws_iam_policy_document" "sns_topic_policy_document" {
+  statement {
+    actions = [
+      "SNS:Subscribe",
+      "SNS:SetTopicAttributes",
+      "SNS:RemovePermission",
+      "SNS:Receive",
+      "SNS:Publish",
+      "SNS:ListSubscriptionsByTopic",
+      "SNS:GetTopicAttributes",
+      "SNS:DeleteTopic",
+      "SNS:AddPermission",
+    ]
+    effect = "Allow"
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+
+    resources = [
+      aws_sns_topic.cookies_topic.arn,
+    ]
+    sid = ""
+  }
+}
+
