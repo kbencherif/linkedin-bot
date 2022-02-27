@@ -34,6 +34,27 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 
+#resource "aws_iam_role" "iam_for_event_bridge" {
+#  name               = "event_bridge_role"
+#  assume_role_policy = <<EOF
+#{
+#  "Version": "2012-10-17",
+#  "Statement": [
+#    {
+#      "Effect": "Allow",
+#      "Action": [
+#        "execute-api:Invoke",
+#        "execute-api:ManageConnections"
+#      ],
+#      "Resource": [
+#        "arn:aws:execute-api:eu-west-1:885096923627:x28bowsfo6/api_stage/*"
+#      ]
+#    }
+#  ]
+#}
+#EOF
+#}
+
 data "archive_file" "zip_get_cookies" {
   type        = "zip"
   source_dir  = "${path.module}/lambdas/get_cookies/"
@@ -101,6 +122,14 @@ resource "aws_lambda_permission" "apigw_lambda" {
   source_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.api.id}/*/${aws_api_gateway_method.lambda_get.http_method}/${aws_api_gateway_resource.api_resource.path}"
 }
 
+resource "aws_lambda_permission" "event_bridge_lambda" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_cookies.arn
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.bot_start_rule.arn
+}
+
 resource "aws_api_gateway_deployment" "bot_api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   depends_on = [
@@ -115,7 +144,7 @@ resource "aws_api_gateway_deployment" "bot_api_deployment" {
 resource "aws_api_gateway_stage" "bot_apigw_stage" {
   deployment_id = aws_api_gateway_deployment.bot_api_deployment.id
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  stage_name    = "api_stage"
+  stage_name    = "linkedin_bot_api_stage"
 }
 
 resource "aws_lambda_permission" "apigw" {
@@ -128,12 +157,12 @@ resource "aws_lambda_permission" "apigw" {
 }
 
 resource "aws_cloudwatch_event_rule" "bot_start_rule" {
-  name = "start_bot"
-  #  schedule_expression = "cron(0 9 ? * 1-5 *)"
-  schedule_expression = "cron(0/2 * * * ? *)"
+  name                = "start_bot"
+  schedule_expression = "cron(0 9 ? * 1-5 *)"
+  #schedule_expression = "cron(0/2 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "apigw_target" {
   rule = aws_cloudwatch_event_rule.bot_start_rule.id
-  arn  = "${aws_api_gateway_stage.bot_apigw_stage.execution_arn}/GET"
+  arn  = aws_lambda_function.get_cookies.arn
 }
