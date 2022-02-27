@@ -92,7 +92,6 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
 }
 
 
-
 resource "aws_api_gateway_rest_api" "api" {
   name = "linkedin_bot_api"
 }
@@ -118,15 +117,6 @@ resource "aws_api_gateway_integration" "integration" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.get_cookies.invoke_arn
-}
-
-resource "aws_lambda_permission" "apigw_lambda" {
-  statement_id  = "AllowExecutionFromAPIGateway"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_cookies.function_name
-  principal     = "apigateway.amazonaws.com"
-
-  source_arn = "arn:aws:execute-api:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:${aws_api_gateway_rest_api.api.id}/*/${aws_api_gateway_method.lambda_get.http_method}${aws_api_gateway_resource.api_resource.path}"
 }
 
 resource "aws_lambda_permission" "event_bridge_lambda" {
