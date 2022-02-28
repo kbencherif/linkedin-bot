@@ -1,7 +1,7 @@
-import puppeteer from 'puppeteer-core'
-import chromium from 'chrome-aws-lambda'
+const puppeteer = require('puppeteer-core')
+const chromium = require('chrome-aws-lambda')
 
-export const handler = async function() {
+module.exports.handler = async function() {
   const browser = await puppeteer.launch({
     args: chromium.args,
     headless: true,
@@ -15,13 +15,14 @@ export const handler = async function() {
   await page.type('#password', process.env.BOT_PASSWORD, { delay: 100 });
   await page.keyboard.press('Enter');
   await page.waitForNavigation({ waitUntil: 'networkidle2' });
+  console.log("Login account")
   const cookies = await page.cookies()
-  browser.close
+  console.log("get cookies")
   return {
     statusCode: 200,
     body: JSON.stringify({
       status: "OK",
-      cookies: cookies
+      cookies: cookies,
     })
   }
 }
