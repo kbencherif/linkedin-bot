@@ -55,9 +55,9 @@ resource "aws_lambda_function" "orchestrator" {
   runtime          = "nodejs14.x"
   handler          = "index.handler"
   source_code_hash = filebase64sha256(data.archive_file.zip_orchestrator.output_path)
-  layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
-  timeout          = 30
-  memory_size      = 600
+  //  layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
+  timeout     = 30
+  memory_size = 600
 
   environment {
     variables = {
@@ -148,9 +148,9 @@ resource "aws_lambda_permission" "apigw" {
 }
 
 resource "aws_cloudwatch_event_rule" "bot_start_rule" {
-  name = "start_bot"
-  #schedule_expression = "cron(0 9 ? * 1-5 *)"
-  schedule_expression = "cron(0/2 * * * ? *)"
+  name                = "start_bot"
+  schedule_expression = "cron(0 9 ? * 1-5 *)"
+  #schedule_expression = "cron(0/2 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "apigw_target" {
@@ -193,3 +193,39 @@ data "aws_iam_policy_document" "sns_topic_policy_document" {
   }
 }
 
+resource "aws_dynamodb_table" "cookies_table" {
+  name           = "cookies_table"
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 5
+  write_capacity = 5
+  hash_key       = "email"
+
+  attribute {
+    name = "email"
+    type = "S"
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_policy_dynamodb" {
+  name = "lambda_dynamo_access"
+  role = aws_iam_role.iam_for_lambda.id
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": [
+              "dynamodb:PutItem",
+              "dynamodb:GetItem",
+              "dynamodb:BatchWriteItem",
+              "dynamodb:Scan",
+              "dynamodb:ListTables"
+          ],
+          "Resource": "*"
+      }
+  ]
+}
+EOF
+}
