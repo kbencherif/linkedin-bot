@@ -19,3 +19,5 @@ crash.log
 .env
 
 secret.tfvars
+
+*.zip
