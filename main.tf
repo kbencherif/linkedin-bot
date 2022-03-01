@@ -61,8 +61,9 @@ resource "aws_lambda_function" "orchestrator" {
 
   environment {
     variables = {
-      BOT_EMAIL    = var.bot_email
-      BOT_PASSWORD = var.bot_password
+      BOT_EMAIL     = var.bot_email
+      BOT_PASSWORD  = var.bot_password
+      SNS_TOPIC_ARN = aws_sqs_queue.q.arn
     }
   }
 }
@@ -155,7 +156,7 @@ resource "aws_cloudwatch_event_rule" "bot_start_rule" {
 
 resource "aws_cloudwatch_event_target" "apigw_target" {
   rule = aws_cloudwatch_event_rule.bot_start_rule.id
-  arn  = aws_lambda_function.get_cookies.arn
+  arn  = aws_lambda_function.orchestrator.arn
 }
 
 resource "aws_sns_topic" "cookies_topic" {
@@ -194,7 +195,7 @@ data "aws_iam_policy_document" "sns_topic_policy_document" {
 }
 
 resource "aws_dynamodb_table" "cookies_table" {
-  name           = "cookies_table"
+  name           = var.cookies_table
   billing_mode   = "PROVISIONED"
   read_capacity  = 5
   write_capacity = 5
@@ -228,4 +229,39 @@ resource "aws_iam_role_policy" "lambda_policy_dynamodb" {
   ]
 }
 EOF
+}
+
+resource "aws_sqs_queue" "q" {
+  name = "q"
+}
+
+resource "aws_sqs_queue_policy" "test" {
+  queue_url = aws_sqs_queue.q.id
+
+  policy = <<POLICY
+{
+  "Version": "2012-10-17",
+  "Id": "sqspolicy",
+  "Statement": [
+    {
+      "Sid": "First",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": "sqs:SendMessage",
+      "Resource": "${aws_sqs_queue.q.arn}",
+      "Condition": {
+        "ArnEquals": {
+          "aws:SourceArn": "${aws_sns_topic.cookies_topic.arn}"
+        }
+      }
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_sns_topic_subscription" "sqs_target" {
+  topic_arn = aws_sns_topic.cookies_topic.arn
+  protocol  = "sqs"
+  endpoint  = aws_sqs_queue.q.arn
 }
