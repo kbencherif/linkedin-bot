@@ -96,7 +96,7 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
 resource "aws_lambda_permission" "event_bridge_lambda" {
   statement_id  = "AllowExecutionFromEventBridge"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_cookies.arn
+  function_name = aws_lambda_function.orchestrator.arn
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.bot_start_rule.arn
 }
