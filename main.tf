@@ -93,59 +93,12 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
 }
 
 
-resource "aws_api_gateway_rest_api" "api" {
-  name = "linkedin_bot_api"
-}
-
-resource "aws_api_gateway_resource" "api_resource" {
-  path_part   = "resource"
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  rest_api_id = aws_api_gateway_rest_api.api.id
-}
-
-resource "aws_api_gateway_method" "lambda_get" {
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.api_resource.id
-  http_method   = "GET"
-  authorization = "NONE"
-}
-
-resource "aws_api_gateway_integration" "integration" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.api_resource.id
-  http_method = aws_api_gateway_method.lambda_get.http_method
-
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = aws_lambda_function.get_cookies.invoke_arn
-}
-
 resource "aws_lambda_permission" "event_bridge_lambda" {
   statement_id  = "AllowExecutionFromEventBridge"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.get_cookies.arn
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.bot_start_rule.arn
-}
-
-resource "aws_api_gateway_deployment" "bot_api_deployment" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  depends_on = [
-    aws_api_gateway_integration.integration
-  ]
-
-  triggers = {
-    redeployement = sha1(jsonencode(aws_api_gateway_integration.integration))
-  }
-}
-
-resource "aws_lambda_permission" "apigw" {
-  statement_id  = "AllowAPIGatewayInvoke"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_cookies.function_name
-  principal     = "apigateway.amazonaws.com"
-
-  source_arn = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
 resource "aws_cloudwatch_event_rule" "bot_start_rule" {
