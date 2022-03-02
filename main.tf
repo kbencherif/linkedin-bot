@@ -213,6 +213,14 @@ resource "aws_sqs_queue" "q" {
 
 resource "aws_sns_topic_subscription" "sqs_target" {
   topic_arn = aws_sns_topic.cookies_topic.arn
-  protocol  = "sqs"
-  endpoint  = aws_sqs_queue.q.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.get_cookies.arn
+}
+
+resource "aws_lambda_permission" "with_sns" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_cookies.arn
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.cookies_topic.arn
 }
