@@ -1,13 +1,19 @@
 const AWS = require('aws-sdk')
 
+const sendSqsMessage = async (message) => {
+  const sqs = new AWS.SQS()
+  return sqs.sendMessage({
+    MessageBody: message,
+    QueueUrl: process.env.QUEUE_URL,
+  }).promise()
+}
+
 module.exports.handler = async () => {
   AWS.config.update({ region: 'eu-west-1' })
   AWS.config.logger = console
+  console.log(process.env.QUEUE_URL)
 
   const ddb = new AWS.DynamoDB()
-  const sns = new AWS.SNS()
-
-  console.log(process.env.SNS_TOPIC_ARN)
   const ret = ddb.getItem({
     TableName: "cookies_table",
     Key: {
@@ -15,31 +21,15 @@ module.exports.handler = async () => {
     }
   })
     .promise()
-    .then(data => {
+    .then(async data => {
       if (data.Item) {
-        sns.publish({
-          Message: data.Item.email.S,
-          TargetArn: process.env.SNS_TOPIC_ARN,
-          MessageAttributes: {
-            '<String>': {
-              DataType: 'String'
-            }
-          }
-        })
+        await sendSqsMessage("TURBOFLEX")
       } else {
-        sns.publish({
-          Message: "FLEX",
-          TargetArn: process.env.SNS_TOPIC_ARN,
-          MessageAttributes: {
-            '<String>': {
-              DataType: 'String'
-            }
-          }
-
-        })
+        await sendSqsMessage("FLEX")
       }
       return {
         statusCode: 200,
+        body: "OK"
       }
     })
   return await ret

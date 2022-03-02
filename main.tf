@@ -61,9 +61,9 @@ resource "aws_lambda_function" "orchestrator" {
 
   environment {
     variables = {
-      BOT_EMAIL     = var.bot_email
-      BOT_PASSWORD  = var.bot_password
-      SNS_TOPIC_ARN = aws_sqs_queue.q.arn
+      BOT_EMAIL    = var.bot_email
+      BOT_PASSWORD = var.bot_password
+      QUEUE_URL    = aws_sqs_queue.q.id
     }
   }
 }
@@ -231,33 +231,31 @@ resource "aws_iam_role_policy" "lambda_policy_dynamodb" {
 EOF
 }
 
-resource "aws_sqs_queue" "q" {
-  name = "q"
-}
+resource "aws_iam_role_policy" "lambda_policy_sqs" {
+  name = "lambda_sqs_access"
+  role = aws_iam_role.iam_for_lambda.id
 
-resource "aws_sqs_queue_policy" "test" {
-  queue_url = aws_sqs_queue.q.id
-
-  policy = <<POLICY
+  policy = <<EOF
 {
   "Version": "2012-10-17",
-  "Id": "sqspolicy",
   "Statement": [
-    {
-      "Sid": "First",
-      "Effect": "Allow",
-      "Principal": "*",
-      "Action": "sqs:SendMessage",
-      "Resource": "${aws_sqs_queue.q.arn}",
-      "Condition": {
-        "ArnEquals": {
-          "aws:SourceArn": "${aws_sns_topic.cookies_topic.arn}"
-        }
+      {
+          "Effect": "Allow",
+          "Action": [
+              "sqs:*"
+          ],
+          "Resource": "*"
       }
-    }
   ]
 }
-POLICY
+EOF
+}
+
+resource "aws_sqs_queue" "q" {
+  name                      = "q"
+  message_retention_seconds = 86400
+  delay_seconds             = 90
+  receive_wait_time_seconds = 0
 }
 
 resource "aws_sns_topic_subscription" "sqs_target" {
