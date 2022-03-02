@@ -2,16 +2,24 @@ const AWS = require('aws-sdk')
 
 const sendSqsMessage = async (message) => {
   const sqs = new AWS.SQS()
+
   return sqs.sendMessage({
     MessageBody: message,
     QueueUrl: process.env.QUEUE_URL,
   }).promise()
 }
 
+const sendSnsMessage = async () => {
+  const sns = new AWS.SNS()
+
+  return sns.publish({
+    Message: "Flex",
+    TargetArn: process.env.SNS_TOPIC
+  }).promise()
+}
+
 module.exports.handler = async () => {
   AWS.config.update({ region: 'eu-west-1' })
-  AWS.config.logger = console
-  console.log(process.env.QUEUE_URL)
 
   const ddb = new AWS.DynamoDB()
   const ret = ddb.getItem({
@@ -25,7 +33,7 @@ module.exports.handler = async () => {
       if (data.Item) {
         await sendSqsMessage("TURBOFLEX")
       } else {
-        await sendSqsMessage("FLEX")
+        await sendSnsMessage()
       }
       return {
         statusCode: 200,

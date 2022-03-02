@@ -64,6 +64,7 @@ resource "aws_lambda_function" "orchestrator" {
       BOT_EMAIL    = var.bot_email
       BOT_PASSWORD = var.bot_password
       QUEUE_URL    = aws_sqs_queue.q.id
+      SNS_TOPIC    = aws_sns_topic.cookies_topic.arn
     }
   }
 }
@@ -132,7 +133,7 @@ data "aws_iam_policy_document" "sns_topic_policy_document" {
       "SNS:ListSubscriptionsByTopic",
       "SNS:GetTopicAttributes",
       "SNS:DeleteTopic",
-      "SNS:AddPermission",
+      "SNS:AddPermission"
     ]
     effect = "Allow"
     principals {
