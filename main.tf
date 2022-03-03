@@ -55,16 +55,16 @@ resource "aws_lambda_function" "orchestrator" {
   runtime          = "nodejs14.x"
   handler          = "index.handler"
   source_code_hash = filebase64sha256(data.archive_file.zip_orchestrator.output_path)
-  //  layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
-  timeout     = 30
-  memory_size = 600
+  timeout          = 30
+  memory_size      = 600
 
   environment {
     variables = {
-      BOT_EMAIL    = var.bot_email
-      BOT_PASSWORD = var.bot_password
-      QUEUE_URL    = aws_sqs_queue.q.id
-      SNS_TOPIC    = aws_sns_topic.cookies_topic.arn
+      BOT_EMAIL     = var.bot_email
+      BOT_PASSWORD  = var.bot_password
+      QUEUE_URL     = aws_sqs_queue.q.id
+      SNS_TOPIC     = aws_sns_topic.cookies_topic.arn
+      COOKIES_TABLE = var.cookies_table
     }
   }
 }
@@ -82,8 +82,10 @@ resource "aws_lambda_function" "get_cookies" {
 
   environment {
     variables = {
-      BOT_EMAIL    = var.bot_email
-      BOT_PASSWORD = var.bot_password
+      BOT_EMAIL     = var.bot_email
+      BOT_PASSWORD  = var.bot_password
+      QUEUE_URL     = aws_sqs_queue.q.id
+      COOKIES_TABLE = var.cookies_table
     }
   }
 }

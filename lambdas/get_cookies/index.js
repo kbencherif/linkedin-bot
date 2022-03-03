@@ -22,55 +22,61 @@ const loginBot = async () => {
   return cookies.find(e => e.name === "li_rm")
 }
 
+const putCookiesInDdb = async (cookies) => {
+  const ddb = new AWS.DynamoDB()
+
+  await ddb.putItem({
+    TableName: process.env.COOKIES_TABLE,
+    Item: {
+      "email": {
+        S: process.env.BOT_EMAIL
+      },
+      name: {
+        S: cookies.name
+      },
+      domain: {
+        S: cookies.domain
+      },
+      path: {
+        S: cookies.path
+      },
+      expires: {
+        S: cookies.expires.toString()
+      },
+      size: {
+        S: cookies.size.toString()
+      },
+      httpOnly: {
+        BOOL: cookies.httpOnly
+      },
+      secure: {
+        BOOL: cookies.secure
+      },
+      session: {
+        BOOL: cookies.session
+      },
+      sameSite: {
+        S: cookies.sameSite
+      },
+      sameParty: {
+        BOOL: cookies.sameParty
+      },
+      sourceScheme: {
+        S: cookies.sourceScheme
+      },
+      sourcePort: {
+        S: cookies.sourceScheme.toString()
+      }
+    }
+  }).promise()
+}
+
 module.exports.handler = async () => {
   AWS.config.update({ region: 'eu-west-1' })
-  const cookie = await loginBot()
-  const ddb = new AWS.DynamoDB()
+  const cookies = await loginBot()
   try {
-    await ddb.putItem({
-      TableName: "cookies_table",
-      Item: {
-        "email": {
-          S: process.env.BOT_EMAIL
-        },
-          name: {
-          S: cookie.name
-        },
-        domain: {
-          S: cookie.domain
-        },
-        path: {
-          S: cookie.path
-        },
-        expires: {
-          S: cookie.expires.toString()
-        },
-        size: {
-          S: cookie.size.toString()
-        },
-        httpOnly: {
-          BOOL: cookie.httpOnly
-        },
-        secure: {
-          BOOL: cookie.secure
-        },
-        session: {
-          BOOL: cookie.session
-        },
-        sameSite: {
-          S: cookie.sameSite
-        },
-        sameParty: {
-          BOOL: cookie.sameParty
-        },
-        sourceScheme: {
-          S: cookie.sourceScheme
-        },
-        sourcePort: {
-          S: cookie.sourceScheme.toString()
-        }
-      }
-    }).promise()
+    await putCookiesInDdb(cookies)
+    console.log(`Put user's cookies in table ${process.env.COOKIES_TABLE}`)
     return {
       statusCode: 200,
       body: JSON.stringify({

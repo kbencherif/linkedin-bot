@@ -13,7 +13,7 @@ const sendSnsMessage = async () => {
   const sns = new AWS.SNS()
 
   return sns.publish({
-    Message: "Flex",
+    Message: "get_cookies",
     TargetArn: process.env.SNS_TOPIC
   }).promise()
 }
@@ -23,7 +23,7 @@ module.exports.handler = async () => {
 
   const ddb = new AWS.DynamoDB()
   const ret = ddb.getItem({
-    TableName: "cookies_table",
+    TableName: process.env.COOKIES_TABLE,
     Key: {
       "email": { S: process.env.BOT_EMAIL }
     }
@@ -31,7 +31,7 @@ module.exports.handler = async () => {
     .promise()
     .then(async data => {
       if (data.Item) {
-        await sendSqsMessage("TURBOFLEX")
+        await sendSqsMessage("start_scraping")
       } else {
         await sendSnsMessage()
       }
