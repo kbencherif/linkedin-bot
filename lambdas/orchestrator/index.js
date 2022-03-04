@@ -1,10 +1,10 @@
 const AWS = require('aws-sdk')
 
-const sendSqsMessage = async (message) => {
+const sendSqsMessage = async () => {
   const sqs = new AWS.SQS()
 
   return sqs.sendMessage({
-    MessageBody: message,
+    MessageBody: "start_scraping",
     QueueUrl: process.env.QUEUE_URL,
   }).promise()
 }
@@ -31,7 +31,7 @@ module.exports.handler = async () => {
     .promise()
     .then(async data => {
       if (data.Item) {
-        await sendSqsMessage("start_scraping")
+        await sendSqsMessage()
       } else {
         await sendSnsMessage()
       }

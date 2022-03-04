@@ -71,12 +71,23 @@ const putCookiesInDdb = async (cookies) => {
   }).promise()
 }
 
+const sendSqsMessage = async () => {
+  const sqs = new AWS.SQS()
+
+  return sqs.sendMessage({
+    MessageBody: "start_scraping",
+    QueueUrl: process.env.QUEUE_URL,
+  }).promise()
+}
+
 module.exports.handler = async () => {
   AWS.config.update({ region: 'eu-west-1' })
   const cookies = await loginBot()
   try {
     await putCookiesInDdb(cookies)
     console.log(`Put user's cookies in table ${process.env.COOKIES_TABLE}`)
+    await sendSqsMessage()
+
     return {
       statusCode: 200,
       body: JSON.stringify({
