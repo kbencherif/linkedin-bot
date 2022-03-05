@@ -1,7 +1,6 @@
 variable "bot_email" {
   description = "bot email"
   type        = string
-  sensitive   = true
 }
 
 variable "bot_password" {
@@ -14,4 +13,10 @@ variable "cookies_table" {
   description = "Cookie's table name"
   type        = string
   default     = "cookies_table"
+}
+
+variable "aws_region" {
+  description = "Resources region"
+  type        = string
+  default     = "eu-west-1"
 }
