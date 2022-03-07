@@ -31,6 +31,13 @@ data "archive_file" "zip_get_cookies" {
   output_path = "${path.module}/lambdas/get_cookies/get_cookies.zip"
 }
 
+data "archive_file" "zip_start_scraping" {
+  type        = "zip"
+  source_dir  = "${path.module}/lambdas/start_scraping/"
+  excludes    = ["${path.module}/lambdas/start_scraping/start_scraping.zip"]
+  output_path = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+}
+
 resource "aws_lambda_function" "orchestrator" {
   filename         = "${path.module}/lambdas/orchestrator/orchestrator.zip"
   role             = aws_iam_role.iam_for_lambda.arn
@@ -52,6 +59,12 @@ resource "aws_lambda_function" "orchestrator" {
   }
 }
 
+resource "aws_sns_topic_subscription" "get_cookies_subscription" {
+  topic_arn = aws_sns_topic.cookies_topic.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.get_cookies.arn
+}
+
 resource "aws_lambda_function" "get_cookies" {
   filename         = "${path.module}/lambdas/get_cookies/get_cookies.zip"
   role             = aws_iam_role.iam_for_lambda.arn
@@ -68,6 +81,40 @@ resource "aws_lambda_function" "get_cookies" {
       BOT_EMAIL     = var.bot_email
       BOT_PASSWORD  = var.bot_password
       QUEUE_URL     = aws_sqs_queue.q.id
+      COOKIES_TABLE = var.cookies_table
+    }
+  }
+}
+
+resource "aws_lambda_permission" "sqs_lambda_permission" {
+  statement_id  = "AllowExecutionFromSQS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.start_scraping.arn
+  principal     = "sqs.amazonaws.com"
+  source_arn    = aws_sqs_queue.q.arn
+}
+
+resource "aws_lambda_permission" "sns_lambda_permission" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_cookies.arn
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.cookies_topic.arn
+}
+
+resource "aws_lambda_function" "start_scraping" {
+  filename         = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+  role             = aws_iam_role.iam_for_lambda.arn
+  function_name    = "start_scraping"
+  runtime          = "nodejs14.x"
+  handler          = "index.handler"
+  source_code_hash = filebase64sha256(data.archive_file.zip_start_scraping.output_path)
+  layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
+  timeout          = 30
+  memory_size      = 600
+
+  environment {
+    variables = {
       COOKIES_TABLE = var.cookies_table
     }
   }
@@ -170,6 +217,27 @@ resource "aws_iam_role_policy" "lambda_policy_dynamodb" {
 EOF
 }
 
+resource "aws_iam_role_policy" "lambda_policy_s3" {
+  name = "lambda_s3_access"
+  role = aws_iam_role.iam_for_lambda.id
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ExampleStmt",
+      "Action": [
+        "s3:PutObject"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_iam_role_policy" "lambda_policy_sqs" {
   name = "lambda_sqs_access"
   role = aws_iam_role.iam_for_lambda.id
@@ -181,7 +249,9 @@ resource "aws_iam_role_policy" "lambda_policy_sqs" {
       {
           "Effect": "Allow",
           "Action": [
-              "sqs:*"
+              "sqs:ReceiveMessage",
+              "sqs:DeleteMessage",
+              "sqs:GetQueueAttributes"
           ],
           "Resource": "*"
       }
@@ -197,16 +267,13 @@ resource "aws_sqs_queue" "q" {
   receive_wait_time_seconds = 0
 }
 
-resource "aws_sns_topic_subscription" "sqs_target" {
-  topic_arn = aws_sns_topic.cookies_topic.arn
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.get_cookies.arn
+resource "aws_s3_bucket" "bucket" {
+  bucket = "screenshotbucketduflex"
 }
 
-resource "aws_lambda_permission" "with_sns" {
-  statement_id  = "AllowExecutionFromSNS"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_cookies.arn
-  principal     = "sns.amazonaws.com"
-  source_arn    = aws_sns_topic.cookies_topic.arn
+resource "aws_lambda_event_source_mapping" "event_source_mapping" {
+  function_name    = aws_lambda_function.start_scraping.arn
+  batch_size       = 1
+  enabled          = true
+  event_source_arn = aws_sqs_queue.q.arn
 }
