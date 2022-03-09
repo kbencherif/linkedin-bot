@@ -22,52 +22,19 @@ const loginBot = async () => {
 }
 
 const putCookiesInDdb = async (cookies) => {
-  const ddb = new AWS.DynamoDB()
-
-  await ddb.putItem({
-    TableName: process.env.COOKIES_TABLE,
-    Item: {
-      "email": {
-        S: process.env.BOT_EMAIL
-      },
-      name: {
-        S: cookies.name
-      },
-      domain: {
-        S: cookies.domain
-      },
-      path: {
-        S: cookies.path
-      },
-      expires: {
-        S: cookies.expires.toString()
-      },
-      size: {
-        S: cookies.size.toString()
-      },
-      httpOnly: {
-        BOOL: cookies.httpOnly
-      },
-      secure: {
-        BOOL: cookies.secure
-      },
-      session: {
-        BOOL: cookies.session
-      },
-      sameSite: {
-        S: cookies.sameSite
-      },
-      sameParty: {
-        BOOL: cookies.sameParty
-      },
-      sourceScheme: {
-        S: cookies.sourceScheme
-      },
-      sourcePort: {
-        S: cookies.sourceScheme.toString()
-      }
+  try {
+    const ddb_client = new AWS.DynamoDB.DocumentClient()
+    const item = Object.assign({}, { "email": process.env.BOT_EMAIL }, cookies)
+    console.log(item)
+    const params = {
+      TableName: process.env.COOKIES_TABLE,
+      Item: item
     }
-  }).promise()
+    const flex = await ddb_client.put(params).promise()
+    console.log(flex)
+  } catch (err) {
+    console.error(err)
+  }
 }
 
 const sendSqsMessage = async () => {
