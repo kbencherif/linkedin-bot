@@ -116,6 +116,7 @@ resource "aws_lambda_function" "start_scraping" {
   environment {
     variables = {
       COOKIES_TABLE = var.cookies_table
+      BOT_EMAIL     = var.bot_email
     }
   }
 }
@@ -135,9 +136,9 @@ resource "aws_lambda_permission" "event_bridge_lambda" {
 }
 
 resource "aws_cloudwatch_event_rule" "bot_start_rule" {
-  name = "start_bot"
-  #schedule_expression = "cron(0 9 ? * 1-5 *)"
-  schedule_expression = "cron(0/2 * * * ? *)"
+  name                = "start_bot"
+  schedule_expression = "cron(0 9 ? * 1-5 *)"
+  #schedule_expression = "cron(0/2 * * * ? *)"
 }
 
 resource "aws_cloudwatch_event_target" "apigw_target" {
@@ -250,6 +251,7 @@ resource "aws_iam_role_policy" "lambda_policy_sqs" {
           "Effect": "Allow",
           "Action": [
               "sqs:ReceiveMessage",
+              "sqs:SendMessage",
               "sqs:DeleteMessage",
               "sqs:GetQueueAttributes"
           ],
