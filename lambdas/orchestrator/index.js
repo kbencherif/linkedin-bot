@@ -22,7 +22,7 @@ module.exports.handler = async () => {
   AWS.config.update({ region: 'eu-west-1' })
 
   const ddb = new AWS.DynamoDB()
-  const ret = ddb.getItem({
+  await ddb.getItem({
     TableName: process.env.COOKIES_TABLE,
     Key: {
       "email": { S: process.env.BOT_EMAIL }
@@ -40,5 +40,4 @@ module.exports.handler = async () => {
         body: "OK"
       }
     })
-  return await ret
 }

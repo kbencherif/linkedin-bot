@@ -1,12 +1,11 @@
-const puppeteer = require('puppeteer-core')
-const chromium = require('chrome-aws-lambda')
+const chrome = require('chrome-aws-lambda')
 const AWS = require('aws-sdk')
 
 const loginBot = async () => {
-  const browser = await puppeteer.launch({
-    args: chromium.args,
+  const browser = await chrome.puppeteer.launch({
+    args: chrome.args,
     headless: true,
-    executablePath: await chromium.executablePath
+    executablePath: await chrome.executablePath
   })
   const page = await browser.newPage()
   await page.goto("http://linkedin.com/login/")
