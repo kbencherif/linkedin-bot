@@ -270,7 +270,12 @@ resource "aws_sqs_queue" "q" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket = "screenshotbucketduflex"
+  bucket        = "screenshotbucketduflex"
+  acl           = "private"
+  force_destroy = true
+  lifecycle {
+    prevent_destroy = false
+  }
 }
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
