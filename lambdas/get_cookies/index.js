@@ -16,9 +16,8 @@ const loginBot = async () => {
   await page.keyboard.press('Enter');
   await page.waitForNavigation({ waitUntil: 'networkidle2' });
   console.log("Login account")
-  const cookies = await page.cookies()
   console.log("get cookies")
-  return cookies.find(e => e.name === "li_rm")
+  return await page.cookies()
 }
 
 const putCookiesInDdb = async (cookies) => {
@@ -28,7 +27,10 @@ const putCookiesInDdb = async (cookies) => {
     console.log(item)
     const params = {
       TableName: process.env.COOKIES_TABLE,
-      Item: item
+      Item: {
+        email: process.env.BOT_EMAIL ,
+        cookies: cookies
+      }
     }
     const flex = await ddb_client.put(params).promise()
     console.log(flex)
