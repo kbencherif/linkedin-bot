@@ -110,7 +110,7 @@ resource "aws_lambda_function" "start_scraping" {
   handler          = "index.handler"
   source_code_hash = filebase64sha256(data.archive_file.zip_start_scraping.output_path)
   layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
-  timeout          = 30
+  timeout          = 60
   memory_size      = 600
 
   environment {
@@ -263,10 +263,11 @@ EOF
 }
 
 resource "aws_sqs_queue" "q" {
-  name                      = "q"
-  message_retention_seconds = 86400
-  delay_seconds             = 90
-  receive_wait_time_seconds = 0
+  name                       = "q"
+  message_retention_seconds  = 86400
+  delay_seconds              = 90
+  receive_wait_time_seconds  = 0
+  visibility_timeout_seconds = 90
 }
 
 resource "aws_s3_bucket" "bucket" {
