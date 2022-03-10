@@ -7,7 +7,7 @@ const sendSqsMessage = async () => {
     MessageBody: "start_scraping",
     QueueUrl: process.env.QUEUE_URL,
     MessageAttributes: {
-      'message': {
+      'email': {
         DataType: 'String',
         StringValue: process.env.BOT_EMAIL
       }
