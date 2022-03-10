@@ -31,11 +31,11 @@ data "archive_file" "zip_get_cookies" {
   output_path = "${path.module}/lambdas/get_cookies/get_cookies.zip"
 }
 
-data "archive_file" "zip_start_scraping" {
+data "archive_file" "zip_scrap_relationships" {
   type        = "zip"
-  source_dir  = "${path.module}/lambdas/start_scraping/"
-  excludes    = ["${path.module}/lambdas/start_scraping/start_scraping.zip"]
-  output_path = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+  source_dir  = "${path.module}/lambdas/scrap_relationships/"
+  excludes    = ["${path.module}/lambdas/scrap_relationships/scrap_relationships.zip"]
+  output_path = "${path.module}/lambdas/scrap_relationships/scrap_relationships.zip"
 }
 
 resource "aws_lambda_function" "orchestrator" {
@@ -89,7 +89,7 @@ resource "aws_lambda_function" "get_cookies" {
 resource "aws_lambda_permission" "sqs_lambda_permission" {
   statement_id  = "AllowExecutionFromSQS"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.start_scraping.arn
+  function_name = aws_lambda_function.scrap_relationships.arn
   principal     = "sqs.amazonaws.com"
   source_arn    = aws_sqs_queue.q.arn
 }
@@ -102,13 +102,13 @@ resource "aws_lambda_permission" "sns_lambda_permission" {
   source_arn    = aws_sns_topic.cookies_topic.arn
 }
 
-resource "aws_lambda_function" "start_scraping" {
-  filename         = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+resource "aws_lambda_function" "scrap_relationships" {
+  filename         = "${path.module}/lambdas/scrap_relationships/scrap_relationships.zip"
   role             = aws_iam_role.iam_for_lambda.arn
-  function_name    = "start_scraping"
+  function_name    = "scrap_relationships"
   runtime          = "nodejs14.x"
   handler          = "index.handler"
-  source_code_hash = filebase64sha256(data.archive_file.zip_start_scraping.output_path)
+  source_code_hash = filebase64sha256(data.archive_file.zip_scrap_relationships.output_path)
   layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
   timeout          = 60
   memory_size      = 600
@@ -280,7 +280,7 @@ resource "aws_s3_bucket" "bucket" {
 }
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
-  function_name    = aws_lambda_function.start_scraping.arn
+  function_name    = aws_lambda_function.scrap_relationships.arn
   batch_size       = 1
   enabled          = true
   event_source_arn = aws_sqs_queue.q.arn
