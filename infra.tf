@@ -38,6 +38,13 @@ data "archive_file" "zip_scrap_relationships" {
   output_path = "${path.module}/lambdas/scrap_relationships/scrap_relationships.zip"
 }
 
+data "archive_file" "zip_start_scraping" {
+  type        = "zip"
+  source_dir  = "${path.module}/lambdas/start_scraping/"
+  excludes    = ["${path.module}/lambdas/start_scraping/start_scraping.zip"]
+  output_path = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+}
+
 resource "aws_lambda_function" "orchestrator" {
   filename         = "${path.module}/lambdas/orchestrator/orchestrator.zip"
   role             = aws_iam_role.iam_for_lambda.arn
@@ -89,7 +96,7 @@ resource "aws_lambda_function" "get_cookies" {
 resource "aws_lambda_permission" "sqs_lambda_permission" {
   statement_id  = "AllowExecutionFromSQS"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.scrap_relationships.arn
+  function_name = aws_lambda_function.start_scraping.arn
   principal     = "sqs.amazonaws.com"
   source_arn    = aws_sqs_queue.q.arn
 }
@@ -120,6 +127,25 @@ resource "aws_lambda_function" "scrap_relationships" {
     }
   }
 }
+
+resource "aws_lambda_function" "start_scraping" {
+  filename         = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+  role             = aws_iam_role.iam_for_lambda.arn
+  function_name    = "start_scraping"
+  runtime          = "nodejs14.x"
+  handler          = "index.handler"
+  source_code_hash = filebase64sha256(data.archive_file.zip_start_scraping.output_path)
+  layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
+  timeout          = 60
+  memory_size      = 600
+
+  environment {
+    variables = {
+      BOT_EMAIL = var.bot_email
+    }
+  }
+}
+
 
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.iam_for_lambda.name
@@ -280,7 +306,7 @@ resource "aws_s3_bucket" "bucket" {
 }
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
-  function_name    = aws_lambda_function.scrap_relationships.arn
+  function_name    = aws_lambda_function.start_scraping.arn
   batch_size       = 1
   enabled          = true
   event_source_arn = aws_sqs_queue.q.arn
