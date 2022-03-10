@@ -6,6 +6,12 @@ const sendSqsMessage = async () => {
   return sqs.sendMessage({
     MessageBody: "start_scraping",
     QueueUrl: process.env.QUEUE_URL,
+    MessageAttributes: {
+      'message': {
+        DataType: 'String',
+        StringValue: process.env.BOT_EMAIL
+      }
+    }
   }).promise()
 }
 
@@ -22,22 +28,32 @@ module.exports.handler = async () => {
   AWS.config.update({ region: 'eu-west-1' })
 
   const ddb = new AWS.DynamoDB()
-  await ddb.getItem({
-    TableName: process.env.COOKIES_TABLE,
-    Key: {
-      "email": { S: process.env.BOT_EMAIL }
-    }
-  })
-    .promise()
-    .then(async data => {
-      if (data.Item) {
-        await sendSqsMessage()
-      } else {
-        await sendSnsMessage()
-      }
-      return {
-        statusCode: 200,
-        body: "OK"
+  try {
+    await ddb.getItem({
+      TableName: process.env.COOKIES_TABLE,
+      Key: {
+        "email": { S: process.env.BOT_EMAIL }
       }
     })
+      .promise()
+      .then(async data => {
+        if (data.Item) {
+          console.log("Send sqs message")
+          await sendSqsMessage()
+        } else {
+          console.log("Send sns message")
+          await sendSnsMessage()
+        }
+      })
+    return {
+      statusCode: 200,
+      body: "OK"
+    }
+  } catch (err) {
+    console.error(err)
+    return {
+      statusCode: 400,
+      body: "Something went wrong"
+    }
+  }
 }
