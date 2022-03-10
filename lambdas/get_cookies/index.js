@@ -23,8 +23,6 @@ const loginBot = async () => {
 const putCookiesInDdb = async (cookies) => {
   try {
     const ddb_client = new AWS.DynamoDB.DocumentClient()
-    const item = Object.assign({}, { "email": process.env.BOT_EMAIL }, cookies)
-    console.log(item)
     const params = {
       TableName: process.env.COOKIES_TABLE,
       Item: {
@@ -32,8 +30,7 @@ const putCookiesInDdb = async (cookies) => {
         cookies: cookies
       }
     }
-    const flex = await ddb_client.put(params).promise()
-    console.log(flex)
+    await ddb_client.put(params).promise()
   } catch (err) {
     console.error(err)
   }
