@@ -117,6 +117,7 @@ resource "aws_lambda_function" "run_bot" {
     variables = {
       COOKIES_TABLE = var.cookies_table
       REGION        = var.aws_region
+      BUCKET_NAME   = var.s3_bucket_name
     }
   }
 }

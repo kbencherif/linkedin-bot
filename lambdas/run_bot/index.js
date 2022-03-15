@@ -3,7 +3,7 @@ const chrome = require('chrome-aws-lambda')
 
 AWS.config.update({ region: process.env.REGION })
 const s3 = new AWS.S3()
-const bucketName = "screenshotbucketduflex"
+const bucketName = process.env.BUCKET_NAME
 
 async function screenshot(page, identifier) {
   console.log("screenshot page")
