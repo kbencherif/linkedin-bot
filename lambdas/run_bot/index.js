@@ -31,7 +31,7 @@ const login = async (cookies) => {
   return page
 }
 
-module.exports.handler = async () => {
+module.exports.handler = async (event) => {
   try {
     const ddb = new AWS.DynamoDB()
     const params = {
@@ -64,4 +64,3 @@ module.exports.handler = async () => {
     }
   }
 }
-
