@@ -1,11 +1,11 @@
-const chrome = require('chrome-aws-lambda')
-const AWS = require('aws-sdk')
+const chromium = require("chrome-aws-lambda")
+const AWS = require("aws-sdk")
 
 const loginBot = async () => {
-  const browser = await chrome.puppeteer.launch({
-    args: chrome.args,
+  const browser = await chromium.puppeteer.launch({
+    args: chromium.args,
     headless: true,
-    executablePath: await chrome.executablePath
+    executablePath: await chromium.executablePath
   })
   const page = await browser.newPage()
   await page.goto("http://linkedin.com/login/")
@@ -26,7 +26,7 @@ const putCookiesInDdb = async (cookies) => {
     const params = {
       TableName: process.env.COOKIES_TABLE,
       Item: {
-        email: process.env.BOT_EMAIL ,
+        email: process.env.BOT_EMAIL,
         cookies: cookies
       }
     }
