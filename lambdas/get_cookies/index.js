@@ -38,6 +38,12 @@ const sendSqsMessage = async () => {
   return sqs.sendMessage({
     MessageBody: "start_scraping",
     QueueUrl: process.env.QUEUE_URL,
+    MessageAttributes: {
+      'email': {
+        DataType: 'String',
+        StringValue: process.env.BOT_EMAIL
+      }
+    }
   }).promise()
 }
 
