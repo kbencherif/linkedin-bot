@@ -14,3 +14,7 @@ output "linkedin_password" {
 output "dynamodb_table_name" {
   value = aws_dynamodb_table.cookies_table.name
 }
+
+output "s3_bucket" {
+  value = var.s3_bucket_name
+}
