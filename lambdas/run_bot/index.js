@@ -1,7 +1,7 @@
 const AWS = require('aws-sdk')
 const chrome = require('chrome-aws-lambda')
 
-AWS.config.update({ region: 'eu-west-1' })
+AWS.config.update({ region: process.env.REGION })
 const s3 = new AWS.S3()
 const bucketName = "screenshotbucketduflex"
 
@@ -18,7 +18,7 @@ async function screenshot(page, identifier) {
   console.log("put screenshot in s3")
 }
 
-const login = async (cookies) => {
+const add_cookies = async (cookies) => {
   const browser = await chrome.puppeteer.launch({
     args: chrome.args,
     headless: true,
@@ -50,7 +50,7 @@ module.exports.handler = async (event) => {
     }
     console.log(`Found account ${process.env.BOT_EMAIL}`)
     const account = AWS.DynamoDB.Converter.unmarshall(data.Item)
-    const page = await login(account.cookies)
+    const page = await add_cookies(account.cookies)
     await screenshot(page, "cookies")
     return {
       statusCode: 200,

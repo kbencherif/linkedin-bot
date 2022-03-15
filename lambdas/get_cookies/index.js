@@ -49,7 +49,7 @@ const log_account = async (email, password) => {
 }
 
 module.exports.handler = async (event) => {
-  AWS.config.update({ region: 'eu-west-1' })
+  AWS.config.update({ region: process.env.REGION})
   try {
     const promises = event.Records.map(async x => {
       const email = x.Sns.MessageAttributes.email.Value

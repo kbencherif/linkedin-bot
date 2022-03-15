@@ -35,7 +35,7 @@ const sendSnsMessage = async () => {
 }
 
 module.exports.handler = async () => {
-  AWS.config.update({ region: 'eu-west-1' })
+  AWS.config.update({ region: process.env.REGION })
 
   const ddb = new AWS.DynamoDB()
   try {

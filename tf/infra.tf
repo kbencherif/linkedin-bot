@@ -55,6 +55,7 @@ resource "aws_lambda_function" "orchestrator" {
       QUEUE_URL     = aws_sqs_queue.q.id
       SNS_TOPIC     = aws_sns_topic.cookies_topic.arn
       COOKIES_TABLE = var.cookies_table
+      REGION        = var.aws_region
     }
   }
 }
@@ -80,6 +81,7 @@ resource "aws_lambda_function" "get_cookies" {
     variables = {
       QUEUE_URL     = aws_sqs_queue.q.id
       COOKIES_TABLE = var.cookies_table
+      REGION        = var.aws_region
     }
   }
 }
@@ -114,6 +116,7 @@ resource "aws_lambda_function" "run_bot" {
   environment {
     variables = {
       COOKIES_TABLE = var.cookies_table
+      REGION        = var.aws_region
     }
   }
 }
