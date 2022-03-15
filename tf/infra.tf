@@ -77,9 +77,10 @@ resource "aws_lambda_function" "run_bot" {
 
   environment {
     variables = {
-      COOKIES_TABLE = var.cookies_table
-      REGION        = var.aws_region
-      BUCKET_NAME   = var.s3_bucket_name
+      COOKIES_TABLE   = var.cookies_table
+      REGION          = var.aws_region
+      BUCKET_NAME     = var.s3_bucket_name
+      RESEARCH_STRING = var.research_string
     }
   }
 }

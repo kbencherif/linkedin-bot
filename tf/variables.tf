@@ -26,3 +26,8 @@ variable "s3_bucket_name" {
   type        = string
   default     = "linkedinbotscreenshotprofile"
 }
+
+variable "research_string" {
+  description = "String to type in the research bar, it can be a person, a position (DevOps Lyon for exemple)"
+  type        = string
+}

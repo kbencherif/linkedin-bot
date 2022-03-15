@@ -5,7 +5,23 @@ AWS.config.update({ region: process.env.REGION })
 const s3 = new AWS.S3()
 const bucketName = process.env.BUCKET_NAME
 
-async function screenshot(page, identifier) {
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+const make_research = async (page) => {
+  await page.waitForSelector('[class="search-global-typeahead__collapsed-search-button"]')
+  await page.click('[class="search-global-typeahead__collapsed-search-button"]')
+  console.log("Click on research bar")
+  await sleep(500)
+  await page.keyboard.type(process.env.RESEARCH_STRING, { delay: 100 })
+  console.log(`Make a research for ${process.env.RESEARCH_STRING}`)
+  await sleep(300)
+  await page.keyboard.press('Enter');
+  await page.waitForNavigation({ waitUntil: 'networkidle2' });
+}
+
+const screenshot = async (page, identifier) => {
   console.log("screenshot page")
   const screenshot = await page.screenshot();
   const date = new Date();
@@ -51,6 +67,8 @@ const run_bot = async (email) => {
   const account = AWS.DynamoDB.Converter.unmarshall(data.Item)
   const page = await add_cookies(account.cookies)
   await screenshot(page, "cookies")
+  await make_research(page)
+  await screenshot(page, "research")
 }
 
 module.exports.handler = async (event) => {
