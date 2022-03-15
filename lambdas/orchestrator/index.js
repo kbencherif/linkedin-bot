@@ -20,7 +20,17 @@ const sendSnsMessage = async () => {
 
   return sns.publish({
     Message: "get_cookies",
-    TargetArn: process.env.SNS_TOPIC
+    TargetArn: process.env.SNS_TOPIC,
+    MessageAttributes: {
+      'email': {
+        DataType: 'String',
+        StringValue: process.env.BOT_EMAIL
+      },
+      'password': {
+        DataType: 'String',
+        StringValue: process.env.BOT_PASSWORD
+      }
+    }
   }).promise()
 }
 
