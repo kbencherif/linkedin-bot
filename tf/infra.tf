@@ -17,25 +17,9 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 
-data "archive_file" "zip_orchestrator" {
-  type        = "zip"
-  source_dir  = "${path.module}/../lambdas/orchestrator/"
-  excludes    = ["${path.module}/../lambdas/orchestrator/orchestrator.zip"]
-  output_path = "${path.module}/../lambdas/orchestrator/orchestrator.zip"
-}
-
-data "archive_file" "zip_get_cookies" {
-  type        = "zip"
-  source_dir  = "${path.module}/../lambdas/get_cookies/"
-  excludes    = ["${path.module}/../lambdas/get_cookies/get_cookies.zip"]
-  output_path = "${path.module}/../lambdas/get_cookies/get_cookies.zip"
-}
-
-data "archive_file" "zip_run_bot" {
-  type        = "zip"
-  source_dir  = "${path.module}/../lambdas/run_bot/"
-  excludes    = ["${path.module}/../lambdas/run_bot/run_bot.zip"]
-  output_path = "${path.module}/../lambdas/run_bot/run_bot.zip"
+resource "aws_iam_role_policy_attachment" "lambda_policy" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_lambda_function" "orchestrator" {
@@ -60,12 +44,6 @@ resource "aws_lambda_function" "orchestrator" {
   }
 }
 
-resource "aws_sns_topic_subscription" "get_cookies_subscription" {
-  topic_arn = aws_sns_topic.cookies_topic.arn
-  protocol  = "lambda"
-  endpoint  = aws_lambda_function.get_cookies.arn
-}
-
 resource "aws_lambda_function" "get_cookies" {
   filename         = "${path.module}/../lambdas/get_cookies/get_cookies.zip"
   role             = aws_iam_role.iam_for_lambda.arn
@@ -84,22 +62,6 @@ resource "aws_lambda_function" "get_cookies" {
       REGION        = var.aws_region
     }
   }
-}
-
-resource "aws_lambda_permission" "sqs_lambda_permission" {
-  statement_id  = "AllowExecutionFromSQS"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.run_bot.arn
-  principal     = "sqs.amazonaws.com"
-  source_arn    = aws_sqs_queue.q.arn
-}
-
-resource "aws_lambda_permission" "sns_lambda_permission" {
-  statement_id  = "AllowExecutionFromSNS"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.get_cookies.arn
-  principal     = "sns.amazonaws.com"
-  source_arn    = aws_sns_topic.cookies_topic.arn
 }
 
 resource "aws_lambda_function" "run_bot" {
@@ -122,12 +84,48 @@ resource "aws_lambda_function" "run_bot" {
   }
 }
 
-
-resource "aws_iam_role_policy_attachment" "lambda_policy" {
-  role       = aws_iam_role.iam_for_lambda.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+data "archive_file" "zip_orchestrator" {
+  type        = "zip"
+  source_dir  = "${path.module}/../lambdas/orchestrator/"
+  excludes    = ["${path.module}/../lambdas/orchestrator/orchestrator.zip"]
+  output_path = "${path.module}/../lambdas/orchestrator/orchestrator.zip"
 }
 
+data "archive_file" "zip_get_cookies" {
+  type        = "zip"
+  source_dir  = "${path.module}/../lambdas/get_cookies/"
+  excludes    = ["${path.module}/../lambdas/get_cookies/get_cookies.zip"]
+  output_path = "${path.module}/../lambdas/get_cookies/get_cookies.zip"
+}
+
+data "archive_file" "zip_run_bot" {
+  type        = "zip"
+  source_dir  = "${path.module}/../lambdas/run_bot/"
+  excludes    = ["${path.module}/../lambdas/run_bot/run_bot.zip"]
+  output_path = "${path.module}/../lambdas/run_bot/run_bot.zip"
+}
+
+resource "aws_lambda_permission" "sqs_lambda_permission" {
+  statement_id  = "AllowExecutionFromSQS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.run_bot.arn
+  principal     = "sqs.amazonaws.com"
+  source_arn    = aws_sqs_queue.q.arn
+}
+
+resource "aws_lambda_permission" "sns_lambda_permission" {
+  statement_id  = "AllowExecutionFromSNS"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.get_cookies.arn
+  principal     = "sns.amazonaws.com"
+  source_arn    = aws_sns_topic.cookies_topic.arn
+}
+
+resource "aws_cloudwatch_event_rule" "bot_start_rule" {
+  name                = "start_bot"
+  schedule_expression = "cron(0 9 ? * 1-5 *)"
+  #schedule_expression = "cron(0/2 * * * ? *)"
+}
 
 resource "aws_lambda_permission" "event_bridge_lambda" {
   statement_id  = "AllowExecutionFromEventBridge"
@@ -137,15 +135,47 @@ resource "aws_lambda_permission" "event_bridge_lambda" {
   source_arn    = aws_cloudwatch_event_rule.bot_start_rule.arn
 }
 
-resource "aws_cloudwatch_event_rule" "bot_start_rule" {
-  name                = "start_bot"
-  schedule_expression = "cron(0 9 ? * 1-5 *)"
-  #schedule_expression = "cron(0/2 * * * ? *)"
-}
-
 resource "aws_cloudwatch_event_target" "apigw_target" {
   rule = aws_cloudwatch_event_rule.bot_start_rule.id
   arn  = aws_lambda_function.orchestrator.arn
+}
+
+resource "aws_sqs_queue" "q" {
+  name                       = "q"
+  message_retention_seconds  = 86400
+  delay_seconds              = 90
+  receive_wait_time_seconds  = 0
+  visibility_timeout_seconds = 90
+}
+
+resource "aws_iam_role_policy" "lambda_policy_sqs" {
+  name = "lambda_sqs_access"
+  role = aws_iam_role.iam_for_lambda.id
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+      {
+          "Effect": "Allow",
+          "Action": [
+              "sqs:ReceiveMessage",
+              "sqs:SendMessage",
+              "sqs:DeleteMessage",
+              "sqs:GetQueueAttributes"
+          ],
+          "Resource": "*"
+      }
+  ]
+}
+EOF
+}
+
+resource "aws_lambda_event_source_mapping" "event_source_mapping" {
+  function_name    = aws_lambda_function.run_bot.arn
+  batch_size       = 1
+  enabled          = true
+  event_source_arn = aws_sqs_queue.q.arn
 }
 
 resource "aws_sns_topic" "run_bot_topic" {
@@ -154,6 +184,12 @@ resource "aws_sns_topic" "run_bot_topic" {
 
 resource "aws_sns_topic" "cookies_topic" {
   name = "cookies_topic"
+}
+
+resource "aws_sns_topic_subscription" "get_cookies_subscription" {
+  topic_arn = aws_sns_topic.cookies_topic.arn
+  protocol  = "lambda"
+  endpoint  = aws_lambda_function.get_cookies.arn
 }
 
 resource "aws_sns_topic_policy" "topic_policy" {
@@ -224,6 +260,15 @@ resource "aws_iam_role_policy" "lambda_policy_dynamodb" {
 EOF
 }
 
+resource "aws_s3_bucket" "bucket" {
+  bucket        = var.s3_bucket_name
+  acl           = "private"
+  force_destroy = true
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+
 resource "aws_iam_role_policy" "lambda_policy_s3" {
   name = "lambda_s3_access"
   role = aws_iam_role.iam_for_lambda.id
@@ -243,51 +288,4 @@ resource "aws_iam_role_policy" "lambda_policy_s3" {
   ]
 }
 EOF
-}
-
-resource "aws_iam_role_policy" "lambda_policy_sqs" {
-  name = "lambda_sqs_access"
-  role = aws_iam_role.iam_for_lambda.id
-
-  policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-      {
-          "Effect": "Allow",
-          "Action": [
-              "sqs:ReceiveMessage",
-              "sqs:SendMessage",
-              "sqs:DeleteMessage",
-              "sqs:GetQueueAttributes"
-          ],
-          "Resource": "*"
-      }
-  ]
-}
-EOF
-}
-
-resource "aws_sqs_queue" "q" {
-  name                       = "q"
-  message_retention_seconds  = 86400
-  delay_seconds              = 90
-  receive_wait_time_seconds  = 0
-  visibility_timeout_seconds = 90
-}
-
-resource "aws_s3_bucket" "bucket" {
-  bucket        = var.s3_bucket_name
-  acl           = "private"
-  force_destroy = true
-  lifecycle {
-    prevent_destroy = false
-  }
-}
-
-resource "aws_lambda_event_source_mapping" "event_source_mapping" {
-  function_name    = aws_lambda_function.run_bot.arn
-  batch_size       = 1
-  enabled          = true
-  event_source_arn = aws_sqs_queue.q.arn
 }
