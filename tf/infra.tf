@@ -19,34 +19,34 @@ EOF
 
 data "archive_file" "zip_orchestrator" {
   type        = "zip"
-  source_dir  = "${path.module}/lambdas/orchestrator/"
-  excludes    = ["${path.module}/lambdas/orchestrator/orchestrator.zip"]
-  output_path = "${path.module}/lambdas/orchestrator/orchestrator.zip"
+  source_dir  = "${path.module}/../lambdas/orchestrator/"
+  excludes    = ["${path.module}/../lambdas/orchestrator/orchestrator.zip"]
+  output_path = "${path.module}/../lambdas/orchestrator/orchestrator.zip"
 }
 
 data "archive_file" "zip_get_cookies" {
   type        = "zip"
-  source_dir  = "${path.module}/lambdas/get_cookies/"
-  excludes    = ["${path.module}/lambdas/get_cookies/get_cookies.zip"]
-  output_path = "${path.module}/lambdas/get_cookies/get_cookies.zip"
+  source_dir  = "${path.module}/../lambdas/get_cookies/"
+  excludes    = ["${path.module}/../lambdas/get_cookies/get_cookies.zip"]
+  output_path = "${path.module}/../lambdas/get_cookies/get_cookies.zip"
 }
 
 data "archive_file" "zip_scrap_relationships" {
   type        = "zip"
-  source_dir  = "${path.module}/lambdas/scrap_relationships/"
-  excludes    = ["${path.module}/lambdas/scrap_relationships/scrap_relationships.zip"]
-  output_path = "${path.module}/lambdas/scrap_relationships/scrap_relationships.zip"
+  source_dir  = "${path.module}/../lambdas/scrap_relationships/"
+  excludes    = ["${path.module}/../lambdas/scrap_relationships/scrap_relationships.zip"]
+  output_path = "${path.module}/../lambdas/scrap_relationships/scrap_relationships.zip"
 }
 
 data "archive_file" "zip_start_scraping" {
   type        = "zip"
-  source_dir  = "${path.module}/lambdas/start_scraping/"
-  excludes    = ["${path.module}/lambdas/start_scraping/start_scraping.zip"]
-  output_path = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+  source_dir  = "${path.module}/../lambdas/start_scraping/"
+  excludes    = ["${path.module}/../lambdas/start_scraping/start_scraping.zip"]
+  output_path = "${path.module}/../lambdas/start_scraping/start_scraping.zip"
 }
 
 resource "aws_lambda_function" "orchestrator" {
-  filename         = "${path.module}/lambdas/orchestrator/orchestrator.zip"
+  filename         = "${path.module}/../lambdas/orchestrator/orchestrator.zip"
   role             = aws_iam_role.iam_for_lambda.arn
   function_name    = "orchestrator"
   runtime          = "nodejs14.x"
@@ -73,7 +73,7 @@ resource "aws_sns_topic_subscription" "get_cookies_subscription" {
 }
 
 resource "aws_lambda_function" "get_cookies" {
-  filename         = "${path.module}/lambdas/get_cookies/get_cookies.zip"
+  filename         = "${path.module}/../lambdas/get_cookies/get_cookies.zip"
   role             = aws_iam_role.iam_for_lambda.arn
   function_name    = "get_cookies"
   runtime          = "nodejs14.x"
@@ -110,7 +110,7 @@ resource "aws_lambda_permission" "sns_lambda_permission" {
 }
 
 resource "aws_lambda_function" "scrap_relationships" {
-  filename         = "${path.module}/lambdas/scrap_relationships/scrap_relationships.zip"
+  filename         = "${path.module}/../lambdas/scrap_relationships/scrap_relationships.zip"
   role             = aws_iam_role.iam_for_lambda.arn
   function_name    = "scrap_relationships"
   runtime          = "nodejs14.x"
@@ -129,7 +129,7 @@ resource "aws_lambda_function" "scrap_relationships" {
 }
 
 resource "aws_lambda_function" "start_scraping" {
-  filename         = "${path.module}/lambdas/start_scraping/start_scraping.zip"
+  filename         = "${path.module}/../lambdas/start_scraping/start_scraping.zip"
   role             = aws_iam_role.iam_for_lambda.arn
   function_name    = "start_scraping"
   runtime          = "nodejs14.x"
@@ -170,6 +170,10 @@ resource "aws_cloudwatch_event_rule" "bot_start_rule" {
 resource "aws_cloudwatch_event_target" "apigw_target" {
   rule = aws_cloudwatch_event_rule.bot_start_rule.id
   arn  = aws_lambda_function.orchestrator.arn
+}
+
+resource "aws_sns_topic" "start_scraping_topic" {
+  name = "start_scraping_topic"
 }
 
 resource "aws_sns_topic" "cookies_topic" {
@@ -297,7 +301,7 @@ resource "aws_sqs_queue" "q" {
 }
 
 resource "aws_s3_bucket" "bucket" {
-  bucket        = "screenshotbucketduflex"
+  bucket        = var.s3_bucket_name
   acl           = "private"
   force_destroy = true
   lifecycle {
