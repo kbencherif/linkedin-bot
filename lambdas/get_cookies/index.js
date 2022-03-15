@@ -32,16 +32,17 @@ const put_cookies_in_ddb = async (email, cookies) => {
   await ddb_client.put(params).promise()
 }
 
-const sendSqsMessage = async () => {
+const sendSqsMessage = async (email) => {
   const sqs = new AWS.SQS()
 
+  console.log("send sqs message")
   return sqs.sendMessage({
     MessageBody: "start_scraping",
     QueueUrl: process.env.QUEUE_URL,
     MessageAttributes: {
       'email': {
         DataType: 'String',
-        StringValue: process.env.BOT_EMAIL
+        StringValue: email
       }
     }
   }).promise()
@@ -50,8 +51,8 @@ const sendSqsMessage = async () => {
 const log_account = async (email, password) => {
   const cookies = await get_cookies(email, password)
   await put_cookies_in_ddb(email, cookies)
-  console.log(`Put user's cookies in table ${process.env.COOKIES_TABLE}`)
-  await sendSqsMessage()
+  console.log(`Put user's cookies in table ${email}`)
+  await sendSqsMessage(email)
 }
 
 module.exports.handler = async (event) => {
@@ -61,7 +62,6 @@ module.exports.handler = async (event) => {
       const email = x.Sns.MessageAttributes.email.Value
       const password = x.Sns.MessageAttributes.password.Value
       await log_account(email, password)
-      return x
     })
     await Promise.all(promises)
     return {

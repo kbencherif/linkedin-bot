@@ -31,27 +31,34 @@ const add_cookies = async (cookies) => {
   return page
 }
 
+const get_account_from_ddb = async (email) => {
+  const ddb = new AWS.DynamoDB()
+  const params = {
+    TableName: process.env.COOKIES_TABLE,
+    Key: {
+      "email": { S: email }
+    }
+  }
+  return ddb.getItem(params).promise()
+}
+
+const run_bot = async (email) => {
+  const data = await get_account_from_ddb(email)
+
+  if (!data.Item) throw new Error(`No data found for ${email}`)
+
+  console.log(`Found account ${email}`)
+  const account = AWS.DynamoDB.Converter.unmarshall(data.Item)
+  const page = await add_cookies(account.cookies)
+  await screenshot(page, "cookies")
+}
+
 module.exports.handler = async (event) => {
   try {
-    const ddb = new AWS.DynamoDB()
-    const params = {
-      TableName: process.env.COOKIES_TABLE,
-      Key: {
-        "email": { S: process.env.BOT_EMAIL }
-      }
-    }
-    const data = await ddb.getItem(params).promise()
-    if (!data.Item) {
-      console.error("No data")
-      return {
-        statusCode: 400,
-        body: "error"
-      }
-    }
-    console.log(`Found account ${process.env.BOT_EMAIL}`)
-    const account = AWS.DynamoDB.Converter.unmarshall(data.Item)
-    const page = await add_cookies(account.cookies)
-    await screenshot(page, "cookies")
+    const promises = event.Records.map(async x => {
+      await run_bot(x.messageAttributes.email.stringValue)
+    })
+    await Promise.all(promises)
     return {
       statusCode: 200,
       body: "OK"
