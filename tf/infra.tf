@@ -31,18 +31,11 @@ data "archive_file" "zip_get_cookies" {
   output_path = "${path.module}/../lambdas/get_cookies/get_cookies.zip"
 }
 
-data "archive_file" "zip_scrap_relationships" {
+data "archive_file" "zip_run_bot" {
   type        = "zip"
-  source_dir  = "${path.module}/../lambdas/scrap_relationships/"
-  excludes    = ["${path.module}/../lambdas/scrap_relationships/scrap_relationships.zip"]
-  output_path = "${path.module}/../lambdas/scrap_relationships/scrap_relationships.zip"
-}
-
-data "archive_file" "zip_start_scraping" {
-  type        = "zip"
-  source_dir  = "${path.module}/../lambdas/start_scraping/"
-  excludes    = ["${path.module}/../lambdas/start_scraping/start_scraping.zip"]
-  output_path = "${path.module}/../lambdas/start_scraping/start_scraping.zip"
+  source_dir  = "${path.module}/../lambdas/run_bot/"
+  excludes    = ["${path.module}/../lambdas/run_bot/run_bot.zip"]
+  output_path = "${path.module}/../lambdas/run_bot/run_bot.zip"
 }
 
 resource "aws_lambda_function" "orchestrator" {
@@ -96,7 +89,7 @@ resource "aws_lambda_function" "get_cookies" {
 resource "aws_lambda_permission" "sqs_lambda_permission" {
   statement_id  = "AllowExecutionFromSQS"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.start_scraping.arn
+  function_name = aws_lambda_function.run_bot.arn
   principal     = "sqs.amazonaws.com"
   source_arn    = aws_sqs_queue.q.arn
 }
@@ -109,32 +102,13 @@ resource "aws_lambda_permission" "sns_lambda_permission" {
   source_arn    = aws_sns_topic.cookies_topic.arn
 }
 
-resource "aws_lambda_function" "scrap_relationships" {
-  filename         = "${path.module}/../lambdas/scrap_relationships/scrap_relationships.zip"
+resource "aws_lambda_function" "run_bot" {
+  filename         = "${path.module}/../lambdas/run_bot/run_bot.zip"
   role             = aws_iam_role.iam_for_lambda.arn
-  function_name    = "scrap_relationships"
+  function_name    = "run_bot"
   runtime          = "nodejs14.x"
   handler          = "index.handler"
-  source_code_hash = filebase64sha256(data.archive_file.zip_scrap_relationships.output_path)
-  layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
-  timeout          = 60
-  memory_size      = 600
-
-  environment {
-    variables = {
-      COOKIES_TABLE = var.cookies_table
-      BOT_EMAIL     = var.bot_email
-    }
-  }
-}
-
-resource "aws_lambda_function" "start_scraping" {
-  filename         = "${path.module}/../lambdas/start_scraping/start_scraping.zip"
-  role             = aws_iam_role.iam_for_lambda.arn
-  function_name    = "start_scraping"
-  runtime          = "nodejs14.x"
-  handler          = "index.handler"
-  source_code_hash = filebase64sha256(data.archive_file.zip_start_scraping.output_path)
+  source_code_hash = filebase64sha256(data.archive_file.zip_run_bot.output_path)
   layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
   timeout          = 60
   memory_size      = 600
@@ -172,8 +146,8 @@ resource "aws_cloudwatch_event_target" "apigw_target" {
   arn  = aws_lambda_function.orchestrator.arn
 }
 
-resource "aws_sns_topic" "start_scraping_topic" {
-  name = "start_scraping_topic"
+resource "aws_sns_topic" "run_bot_topic" {
+  name = "run_bot_topic"
 }
 
 resource "aws_sns_topic" "cookies_topic" {
@@ -310,7 +284,7 @@ resource "aws_s3_bucket" "bucket" {
 }
 
 resource "aws_lambda_event_source_mapping" "event_source_mapping" {
-  function_name    = aws_lambda_function.start_scraping.arn
+  function_name    = aws_lambda_function.run_bot.arn
   batch_size       = 1
   enabled          = true
   event_source_arn = aws_sqs_queue.q.arn
