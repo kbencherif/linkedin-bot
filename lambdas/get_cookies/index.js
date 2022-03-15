@@ -1,7 +1,7 @@
 const chromium = require("chrome-aws-lambda")
 const AWS = require("aws-sdk")
 
-const loginBot = async () => {
+const get_cookies = async (email, password) => {
   const browser = await chromium.puppeteer.launch({
     args: chromium.args,
     headless: true,
@@ -10,9 +10,9 @@ const loginBot = async () => {
   const page = await browser.newPage()
   await page.goto("http://linkedin.com/login/")
   await page.waitForSelector("#username");
-  await page.type('#username', process.env.BOT_EMAIL, { delay: 100 });
+  await page.type('#username', email, { delay: 100 });
   await page.waitForSelector("#password");
-  await page.type('#password', process.env.BOT_PASSWORD, { delay: 100 });
+  await page.type('#password', password, { delay: 100 });
   await page.keyboard.press('Enter');
   await page.waitForNavigation({ waitUntil: 'networkidle2' });
   console.log("Login account")
@@ -20,20 +20,16 @@ const loginBot = async () => {
   return await page.cookies()
 }
 
-const putCookiesInDdb = async (cookies) => {
-  try {
-    const ddb_client = new AWS.DynamoDB.DocumentClient()
-    const params = {
-      TableName: process.env.COOKIES_TABLE,
-      Item: {
-        email: process.env.BOT_EMAIL,
-        cookies: cookies
-      }
+const put_cookies_in_ddb = async (email, cookies) => {
+  const ddb_client = new AWS.DynamoDB.DocumentClient()
+  const params = {
+    TableName: process.env.COOKIES_TABLE,
+    Item: {
+      email,
+      cookies
     }
-    await ddb_client.put(params).promise()
-  } catch (err) {
-    console.error(err)
   }
+  await ddb_client.put(params).promise()
 }
 
 const sendSqsMessage = async () => {
@@ -45,14 +41,23 @@ const sendSqsMessage = async () => {
   }).promise()
 }
 
-module.exports.handler = async () => {
-  AWS.config.update({ region: 'eu-west-1' })
-  const cookies = await loginBot()
-  try {
-    await putCookiesInDdb(cookies)
-    console.log(`Put user's cookies in table ${process.env.COOKIES_TABLE}`)
-    await sendSqsMessage()
+const log_account = async (email, password) => {
+  const cookies = await get_cookies(email, password)
+  await put_cookies_in_ddb(email, cookies)
+  console.log(`Put user's cookies in table ${process.env.COOKIES_TABLE}`)
+  await sendSqsMessage()
+}
 
+module.exports.handler = async (event) => {
+  AWS.config.update({ region: 'eu-west-1' })
+  try {
+    const promises = event.Records.map(async x => {
+      const email = x.Sns.MessageAttributes.email.Value
+      const password = x.Sns.MessageAttributes.password.Value
+      await log_account(email, password)
+      return x
+    })
+    await Promise.all(promises)
     return {
       statusCode: 200,
       body: JSON.stringify({

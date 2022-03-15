@@ -73,8 +73,8 @@ resource "aws_lambda_function" "get_cookies" {
   handler          = "index.handler"
   source_code_hash = filebase64sha256(data.archive_file.zip_get_cookies.output_path)
   layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
-  timeout          = 60
-  memory_size      = 600
+  timeout          = 80
+  memory_size      = 900
 
   environment {
     variables = {
@@ -110,6 +110,12 @@ resource "aws_lambda_function" "run_bot" {
   layers           = ["arn:aws:lambda:eu-west-1:764866452798:layer:chrome-aws-lambda:25"]
   timeout          = 60
   memory_size      = 600
+
+  environment {
+    variables = {
+      COOKIES_TABLE = var.cookies_table
+    }
+  }
 }
 
 
