@@ -19,6 +19,14 @@ const make_research = async (page) => {
   await sleep(300)
   await page.keyboard.press('Enter');
   await page.waitForNavigation({ waitUntil: 'networkidle2' });
+  await page.waitForXPath('//button[contains(., "Personnes")]')
+
+  const [button] = await page.$x('//button[contains(., "Personnes")]')
+  if (button) {
+    button.click()
+  } else {
+    throw new Error("No button found.")
+  }
 }
 
 const screenshot = async (page, identifier) => {
